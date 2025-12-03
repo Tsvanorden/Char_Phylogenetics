@@ -1,0 +1,1028 @@
+#!/bin/bash
+### ---
+### name: 'generate_ML_info (1)'
+### outputs:
+### - 'FcC_smatrix.fas'
+### - 'FcC_info.xls'
+### - 'IQtree_partition.txt'
+### ...
+set -e
+set -u
+NXF_DEBUG=${NXF_DEBUG:=0}; [[ $NXF_DEBUG > 1 ]] && set -x
+NXF_ENTRY=${1:-nxf_main}
+
+
+nxf_sleep() {
+  sleep $1 2>/dev/null || sleep 1;
+}
+
+nxf_date() {
+    local ts=$(date +%s%3N);
+    if [[ ${#ts} == 10 ]]; then echo ${ts}000
+    elif [[ $ts == *%3N ]]; then echo ${ts/\%3N/000}
+    elif [[ $ts == *3N ]]; then echo ${ts/3N/000}
+    elif [[ ${#ts} == 13 ]]; then echo $ts
+    else echo "Unexpected timestamp value: $ts"; exit 1
+    fi
+}
+
+nxf_env() {
+    echo '============= task environment ============='
+    env | sort | sed "s/\(.*\)AWS\(.*\)=\(.\{6\}\).*/\1AWS\2=\3xxxxxxxxxxxxx/"
+    echo '============= task output =================='
+}
+
+nxf_kill() {
+    declare -a children
+    while read P PP;do
+        children[$PP]+=" $P"
+    done < <(ps -e -o pid= -o ppid=)
+
+    kill_all() {
+        [[ $1 != $$ ]] && kill $1 2>/dev/null || true
+        for i in ${children[$1]:=}; do kill_all $i; done
+    }
+
+    kill_all $1
+}
+
+nxf_mktemp() {
+    local base=${1:-/tmp}
+    mkdir -p "$base"
+    if [[ $(uname) = Darwin ]]; then mktemp -d $base/nxf.XXXXXXXXXX
+    else TMPDIR="$base" mktemp -d -t nxf.XXXXXXXXXX
+    fi
+}
+
+nxf_fs_copy() {
+  local source=$1
+  local target=$2
+  local basedir=$(dirname $1)
+  mkdir -p $target/$basedir
+  cp -fRL $source $target/$basedir
+}
+
+nxf_fs_move() {
+  local source=$1
+  local target=$2
+  local basedir=$(dirname $1)
+  mkdir -p $target/$basedir
+  mv -f $source $target/$basedir
+}
+
+nxf_fs_rsync() {
+  rsync -rRl $1 $2
+}
+
+nxf_fs_rclone() {
+  rclone copyto $1 $2/$1
+}
+
+nxf_fs_fcp() {
+  fcp $1 $2/$1
+}
+
+on_exit() {
+    local last_err=$?
+    local exit_status=${nxf_main_ret:=0}
+    [[ ${exit_status} -eq 0 && ${nxf_unstage_ret:=0} -ne 0 ]] && exit_status=${nxf_unstage_ret:=0}
+    [[ ${exit_status} -eq 0 && ${last_err} -ne 0 ]] && exit_status=${last_err}
+    printf -- $exit_status > /export/scratch/tsvanorden/Char_Phylogenetics/work/a9/497a26734fe13b737b8c9527870c7e/.exitcode
+    set +u
+    exit $exit_status
+}
+
+on_term() {
+    set +e
+    [[ "$pid" ]] && nxf_kill $pid
+}
+
+nxf_launch() {
+    /bin/bash -ue /export/scratch/tsvanorden/Char_Phylogenetics/work/a9/497a26734fe13b737b8c9527870c7e/.command.sh
+}
+
+nxf_stage() {
+    true
+    # stage input files
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/3668at7898.fltrd_aligned.fas 3668at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/68702at7898.fltrd_aligned.fas 68702at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/129459at7898.fltrd_aligned.fas 129459at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/93058at7898.fltrd_aligned.fas 93058at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/87269at7898.fltrd_aligned.fas 87269at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/52757at7898.fltrd_aligned.fas 52757at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/53002at7898.fltrd_aligned.fas 53002at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/23786at7898.fltrd_aligned.fas 23786at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/52648at7898.fltrd_aligned.fas 52648at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/128877at7898.fltrd_aligned.fas 128877at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/92459at7898.fltrd_aligned.fas 92459at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/60825at7898.fltrd_aligned.fas 60825at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/38353at7898.fltrd_aligned.fas 38353at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/108420at7898.fltrd_aligned.fas 108420at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/1144at7898.fltrd_aligned.fas 1144at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/39521at7898.fltrd_aligned.fas 39521at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/119428at7898.fltrd_aligned.fas 119428at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/112971at7898.fltrd_aligned.fas 112971at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/135112at7898.fltrd_aligned.fas 135112at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/9174at7898.fltrd_aligned.fas 9174at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/99067at7898.fltrd_aligned.fas 99067at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/22583at7898.fltrd_aligned.fas 22583at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/13461at7898.fltrd_aligned.fas 13461at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/100486at7898.fltrd_aligned.fas 100486at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/109741at7898.fltrd_aligned.fas 109741at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/21311at7898.fltrd_aligned.fas 21311at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/42818at7898.fltrd_aligned.fas 42818at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/39682at7898.fltrd_aligned.fas 39682at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/12350at7898.fltrd_aligned.fas 12350at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/88905at7898.fltrd_aligned.fas 88905at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/87318at7898.fltrd_aligned.fas 87318at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/118342at7898.fltrd_aligned.fas 118342at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/104305at7898.fltrd_aligned.fas 104305at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/59248at7898.fltrd_aligned.fas 59248at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/28273at7898.fltrd_aligned.fas 28273at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/92593at7898.fltrd_aligned.fas 92593at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/22422at7898.fltrd_aligned.fas 22422at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/22348at7898.fltrd_aligned.fas 22348at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/81527at7898.fltrd_aligned.fas 81527at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/13177at7898.fltrd_aligned.fas 13177at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/114572at7898.fltrd_aligned.fas 114572at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/56570at7898.fltrd_aligned.fas 56570at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/25209at7898.fltrd_aligned.fas 25209at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/36114at7898.fltrd_aligned.fas 36114at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/94117at7898.fltrd_aligned.fas 94117at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/10816at7898.fltrd_aligned.fas 10816at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/83556at7898.fltrd_aligned.fas 83556at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/46381at7898.fltrd_aligned.fas 46381at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/53313at7898.fltrd_aligned.fas 53313at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/54064at7898.fltrd_aligned.fas 54064at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/82094at7898.fltrd_aligned.fas 82094at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/49955at7898.fltrd_aligned.fas 49955at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/55551at7898.fltrd_aligned.fas 55551at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/41759at7898.fltrd_aligned.fas 41759at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/104834at7898.fltrd_aligned.fas 104834at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/96723at7898.fltrd_aligned.fas 96723at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/3909at7898.fltrd_aligned.fas 3909at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/48014at7898.fltrd_aligned.fas 48014at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/121682at7898.fltrd_aligned.fas 121682at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/8413at7898.fltrd_aligned.fas 8413at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/92507at7898.fltrd_aligned.fas 92507at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/43762at7898.fltrd_aligned.fas 43762at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/81242at7898.fltrd_aligned.fas 81242at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/119602at7898.fltrd_aligned.fas 119602at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/115630at7898.fltrd_aligned.fas 115630at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/112980at7898.fltrd_aligned.fas 112980at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/24250at7898.fltrd_aligned.fas 24250at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/101536at7898.fltrd_aligned.fas 101536at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/63610at7898.fltrd_aligned.fas 63610at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/31670at7898.fltrd_aligned.fas 31670at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/14739at7898.fltrd_aligned.fas 14739at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/49285at7898.fltrd_aligned.fas 49285at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/100316at7898.fltrd_aligned.fas 100316at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/79073at7898.fltrd_aligned.fas 79073at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/15071at7898.fltrd_aligned.fas 15071at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/45398at7898.fltrd_aligned.fas 45398at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/15120at7898.fltrd_aligned.fas 15120at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/715at7898.fltrd_aligned.fas 715at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/97046at7898.fltrd_aligned.fas 97046at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/13571at7898.fltrd_aligned.fas 13571at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/55486at7898.fltrd_aligned.fas 55486at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/106697at7898.fltrd_aligned.fas 106697at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/126721at7898.fltrd_aligned.fas 126721at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/78751at7898.fltrd_aligned.fas 78751at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/51108at7898.fltrd_aligned.fas 51108at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/9725at7898.fltrd_aligned.fas 9725at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/6873at7898.fltrd_aligned.fas 6873at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/48073at7898.fltrd_aligned.fas 48073at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/39380at7898.fltrd_aligned.fas 39380at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/124954at7898.fltrd_aligned.fas 124954at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/19252at7898.fltrd_aligned.fas 19252at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/90876at7898.fltrd_aligned.fas 90876at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/18317at7898.fltrd_aligned.fas 18317at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/81167at7898.fltrd_aligned.fas 81167at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/52028at7898.fltrd_aligned.fas 52028at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/23678at7898.fltrd_aligned.fas 23678at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/47934at7898.fltrd_aligned.fas 47934at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/120150at7898.fltrd_aligned.fas 120150at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/22684at7898.fltrd_aligned.fas 22684at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/47247at7898.fltrd_aligned.fas 47247at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/35013at7898.fltrd_aligned.fas 35013at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/37903at7898.fltrd_aligned.fas 37903at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/125076at7898.fltrd_aligned.fas 125076at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/29897at7898.fltrd_aligned.fas 29897at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/61459at7898.fltrd_aligned.fas 61459at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/113016at7898.fltrd_aligned.fas 113016at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/57547at7898.fltrd_aligned.fas 57547at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/39045at7898.fltrd_aligned.fas 39045at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/28474at7898.fltrd_aligned.fas 28474at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/117616at7898.fltrd_aligned.fas 117616at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/93217at7898.fltrd_aligned.fas 93217at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/47669at7898.fltrd_aligned.fas 47669at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/62553at7898.fltrd_aligned.fas 62553at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/4182at7898.fltrd_aligned.fas 4182at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/43577at7898.fltrd_aligned.fas 43577at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/101261at7898.fltrd_aligned.fas 101261at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/41507at7898.fltrd_aligned.fas 41507at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/101710at7898.fltrd_aligned.fas 101710at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/67432at7898.fltrd_aligned.fas 67432at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/36710at7898.fltrd_aligned.fas 36710at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/83781at7898.fltrd_aligned.fas 83781at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/15096at7898.fltrd_aligned.fas 15096at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/42232at7898.fltrd_aligned.fas 42232at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/53265at7898.fltrd_aligned.fas 53265at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/102815at7898.fltrd_aligned.fas 102815at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/38904at7898.fltrd_aligned.fas 38904at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/37224at7898.fltrd_aligned.fas 37224at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/61971at7898.fltrd_aligned.fas 61971at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/104332at7898.fltrd_aligned.fas 104332at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/94084at7898.fltrd_aligned.fas 94084at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/116533at7898.fltrd_aligned.fas 116533at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/31899at7898.fltrd_aligned.fas 31899at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/30241at7898.fltrd_aligned.fas 30241at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/79308at7898.fltrd_aligned.fas 79308at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/87543at7898.fltrd_aligned.fas 87543at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/85384at7898.fltrd_aligned.fas 85384at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/62150at7898.fltrd_aligned.fas 62150at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/10421at7898.fltrd_aligned.fas 10421at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/11834at7898.fltrd_aligned.fas 11834at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/31074at7898.fltrd_aligned.fas 31074at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/64537at7898.fltrd_aligned.fas 64537at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/13972at7898.fltrd_aligned.fas 13972at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/98518at7898.fltrd_aligned.fas 98518at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/111632at7898.fltrd_aligned.fas 111632at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/42894at7898.fltrd_aligned.fas 42894at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/21574at7898.fltrd_aligned.fas 21574at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/79837at7898.fltrd_aligned.fas 79837at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/86159at7898.fltrd_aligned.fas 86159at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/69050at7898.fltrd_aligned.fas 69050at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/53363at7898.fltrd_aligned.fas 53363at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/124972at7898.fltrd_aligned.fas 124972at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/70309at7898.fltrd_aligned.fas 70309at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/57763at7898.fltrd_aligned.fas 57763at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/131820at7898.fltrd_aligned.fas 131820at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/33985at7898.fltrd_aligned.fas 33985at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/87008at7898.fltrd_aligned.fas 87008at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/51032at7898.fltrd_aligned.fas 51032at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/93711at7898.fltrd_aligned.fas 93711at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/49671at7898.fltrd_aligned.fas 49671at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/17670at7898.fltrd_aligned.fas 17670at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/124811at7898.fltrd_aligned.fas 124811at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/30794at7898.fltrd_aligned.fas 30794at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/112214at7898.fltrd_aligned.fas 112214at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/108805at7898.fltrd_aligned.fas 108805at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/81024at7898.fltrd_aligned.fas 81024at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/15080at7898.fltrd_aligned.fas 15080at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/28456at7898.fltrd_aligned.fas 28456at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/107811at7898.fltrd_aligned.fas 107811at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/113946at7898.fltrd_aligned.fas 113946at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/64783at7898.fltrd_aligned.fas 64783at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/101957at7898.fltrd_aligned.fas 101957at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/37701at7898.fltrd_aligned.fas 37701at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/42408at7898.fltrd_aligned.fas 42408at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/125301at7898.fltrd_aligned.fas 125301at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/8271at7898.fltrd_aligned.fas 8271at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/107343at7898.fltrd_aligned.fas 107343at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/112177at7898.fltrd_aligned.fas 112177at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/12846at7898.fltrd_aligned.fas 12846at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/13849at7898.fltrd_aligned.fas 13849at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/120803at7898.fltrd_aligned.fas 120803at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/68888at7898.fltrd_aligned.fas 68888at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/94389at7898.fltrd_aligned.fas 94389at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/180at7898.fltrd_aligned.fas 180at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/61172at7898.fltrd_aligned.fas 61172at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/51210at7898.fltrd_aligned.fas 51210at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/46983at7898.fltrd_aligned.fas 46983at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/60550at7898.fltrd_aligned.fas 60550at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/107454at7898.fltrd_aligned.fas 107454at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/118207at7898.fltrd_aligned.fas 118207at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/77483at7898.fltrd_aligned.fas 77483at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/58455at7898.fltrd_aligned.fas 58455at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/60464at7898.fltrd_aligned.fas 60464at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/87454at7898.fltrd_aligned.fas 87454at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/18620at7898.fltrd_aligned.fas 18620at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/22371at7898.fltrd_aligned.fas 22371at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/70079at7898.fltrd_aligned.fas 70079at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/103338at7898.fltrd_aligned.fas 103338at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/98367at7898.fltrd_aligned.fas 98367at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/49124at7898.fltrd_aligned.fas 49124at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/96198at7898.fltrd_aligned.fas 96198at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/38898at7898.fltrd_aligned.fas 38898at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/16744at7898.fltrd_aligned.fas 16744at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/32287at7898.fltrd_aligned.fas 32287at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/86476at7898.fltrd_aligned.fas 86476at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/40344at7898.fltrd_aligned.fas 40344at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/70426at7898.fltrd_aligned.fas 70426at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/45463at7898.fltrd_aligned.fas 45463at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/121548at7898.fltrd_aligned.fas 121548at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/57501at7898.fltrd_aligned.fas 57501at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/12717at7898.fltrd_aligned.fas 12717at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/112561at7898.fltrd_aligned.fas 112561at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/47137at7898.fltrd_aligned.fas 47137at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/65100at7898.fltrd_aligned.fas 65100at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/64605at7898.fltrd_aligned.fas 64605at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/106267at7898.fltrd_aligned.fas 106267at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/85258at7898.fltrd_aligned.fas 85258at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/80283at7898.fltrd_aligned.fas 80283at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/38061at7898.fltrd_aligned.fas 38061at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/20387at7898.fltrd_aligned.fas 20387at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/7219at7898.fltrd_aligned.fas 7219at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/88010at7898.fltrd_aligned.fas 88010at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/84778at7898.fltrd_aligned.fas 84778at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/45133at7898.fltrd_aligned.fas 45133at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/98011at7898.fltrd_aligned.fas 98011at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/32014at7898.fltrd_aligned.fas 32014at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/97971at7898.fltrd_aligned.fas 97971at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/45373at7898.fltrd_aligned.fas 45373at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/118130at7898.fltrd_aligned.fas 118130at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/113131at7898.fltrd_aligned.fas 113131at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/111238at7898.fltrd_aligned.fas 111238at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/58982at7898.fltrd_aligned.fas 58982at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/4973at7898.fltrd_aligned.fas 4973at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/43319at7898.fltrd_aligned.fas 43319at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/93712at7898.fltrd_aligned.fas 93712at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/31462at7898.fltrd_aligned.fas 31462at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/7869at7898.fltrd_aligned.fas 7869at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/130413at7898.fltrd_aligned.fas 130413at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/52085at7898.fltrd_aligned.fas 52085at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/97276at7898.fltrd_aligned.fas 97276at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/32145at7898.fltrd_aligned.fas 32145at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/50407at7898.fltrd_aligned.fas 50407at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/103734at7898.fltrd_aligned.fas 103734at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/43878at7898.fltrd_aligned.fas 43878at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/27751at7898.fltrd_aligned.fas 27751at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/90540at7898.fltrd_aligned.fas 90540at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/101512at7898.fltrd_aligned.fas 101512at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/97170at7898.fltrd_aligned.fas 97170at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/131008at7898.fltrd_aligned.fas 131008at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/65617at7898.fltrd_aligned.fas 65617at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/72157at7898.fltrd_aligned.fas 72157at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/57116at7898.fltrd_aligned.fas 57116at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/65857at7898.fltrd_aligned.fas 65857at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/5752at7898.fltrd_aligned.fas 5752at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/81742at7898.fltrd_aligned.fas 81742at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/18879at7898.fltrd_aligned.fas 18879at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/1697at7898.fltrd_aligned.fas 1697at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/51775at7898.fltrd_aligned.fas 51775at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/54701at7898.fltrd_aligned.fas 54701at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/118095at7898.fltrd_aligned.fas 118095at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/76299at7898.fltrd_aligned.fas 76299at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/52708at7898.fltrd_aligned.fas 52708at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/110261at7898.fltrd_aligned.fas 110261at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/26448at7898.fltrd_aligned.fas 26448at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/30838at7898.fltrd_aligned.fas 30838at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/125416at7898.fltrd_aligned.fas 125416at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/83977at7898.fltrd_aligned.fas 83977at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/102683at7898.fltrd_aligned.fas 102683at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/56989at7898.fltrd_aligned.fas 56989at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/14129at7898.fltrd_aligned.fas 14129at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/83356at7898.fltrd_aligned.fas 83356at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/91380at7898.fltrd_aligned.fas 91380at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/125022at7898.fltrd_aligned.fas 125022at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/47728at7898.fltrd_aligned.fas 47728at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/112365at7898.fltrd_aligned.fas 112365at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/12295at7898.fltrd_aligned.fas 12295at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/57565at7898.fltrd_aligned.fas 57565at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/17452at7898.fltrd_aligned.fas 17452at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/18717at7898.fltrd_aligned.fas 18717at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/39734at7898.fltrd_aligned.fas 39734at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/65572at7898.fltrd_aligned.fas 65572at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/84717at7898.fltrd_aligned.fas 84717at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/21475at7898.fltrd_aligned.fas 21475at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/41699at7898.fltrd_aligned.fas 41699at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/43181at7898.fltrd_aligned.fas 43181at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/67838at7898.fltrd_aligned.fas 67838at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/52670at7898.fltrd_aligned.fas 52670at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/99836at7898.fltrd_aligned.fas 99836at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/36611at7898.fltrd_aligned.fas 36611at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/39654at7898.fltrd_aligned.fas 39654at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/72580at7898.fltrd_aligned.fas 72580at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/11318at7898.fltrd_aligned.fas 11318at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/122122at7898.fltrd_aligned.fas 122122at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/86435at7898.fltrd_aligned.fas 86435at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/126841at7898.fltrd_aligned.fas 126841at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/3359at7898.fltrd_aligned.fas 3359at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/27634at7898.fltrd_aligned.fas 27634at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/50005at7898.fltrd_aligned.fas 50005at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/92854at7898.fltrd_aligned.fas 92854at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/23898at7898.fltrd_aligned.fas 23898at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/104439at7898.fltrd_aligned.fas 104439at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/9138at7898.fltrd_aligned.fas 9138at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/41681at7898.fltrd_aligned.fas 41681at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/74961at7898.fltrd_aligned.fas 74961at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/45169at7898.fltrd_aligned.fas 45169at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/113779at7898.fltrd_aligned.fas 113779at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/10713at7898.fltrd_aligned.fas 10713at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/111311at7898.fltrd_aligned.fas 111311at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/100113at7898.fltrd_aligned.fas 100113at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/69640at7898.fltrd_aligned.fas 69640at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/13582at7898.fltrd_aligned.fas 13582at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/40428at7898.fltrd_aligned.fas 40428at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/8936at7898.fltrd_aligned.fas 8936at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/16220at7898.fltrd_aligned.fas 16220at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/16723at7898.fltrd_aligned.fas 16723at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/68751at7898.fltrd_aligned.fas 68751at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/5604at7898.fltrd_aligned.fas 5604at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/122398at7898.fltrd_aligned.fas 122398at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/81780at7898.fltrd_aligned.fas 81780at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/2857at7898.fltrd_aligned.fas 2857at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/63579at7898.fltrd_aligned.fas 63579at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/33530at7898.fltrd_aligned.fas 33530at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/65727at7898.fltrd_aligned.fas 65727at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/104487at7898.fltrd_aligned.fas 104487at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/87680at7898.fltrd_aligned.fas 87680at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/103648at7898.fltrd_aligned.fas 103648at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/73414at7898.fltrd_aligned.fas 73414at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/48723at7898.fltrd_aligned.fas 48723at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/122989at7898.fltrd_aligned.fas 122989at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/133971at7898.fltrd_aligned.fas 133971at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/50153at7898.fltrd_aligned.fas 50153at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/50534at7898.fltrd_aligned.fas 50534at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/52860at7898.fltrd_aligned.fas 52860at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/74002at7898.fltrd_aligned.fas 74002at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/69609at7898.fltrd_aligned.fas 69609at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/70501at7898.fltrd_aligned.fas 70501at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/86317at7898.fltrd_aligned.fas 86317at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/21198at7898.fltrd_aligned.fas 21198at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/68954at7898.fltrd_aligned.fas 68954at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/20480at7898.fltrd_aligned.fas 20480at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/594at7898.fltrd_aligned.fas 594at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/29344at7898.fltrd_aligned.fas 29344at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/84791at7898.fltrd_aligned.fas 84791at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/59102at7898.fltrd_aligned.fas 59102at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/22456at7898.fltrd_aligned.fas 22456at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/54411at7898.fltrd_aligned.fas 54411at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/78759at7898.fltrd_aligned.fas 78759at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/20942at7898.fltrd_aligned.fas 20942at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/68419at7898.fltrd_aligned.fas 68419at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/121355at7898.fltrd_aligned.fas 121355at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/102960at7898.fltrd_aligned.fas 102960at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/28535at7898.fltrd_aligned.fas 28535at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/129607at7898.fltrd_aligned.fas 129607at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/106554at7898.fltrd_aligned.fas 106554at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/63702at7898.fltrd_aligned.fas 63702at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/80799at7898.fltrd_aligned.fas 80799at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/33107at7898.fltrd_aligned.fas 33107at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/71378at7898.fltrd_aligned.fas 71378at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/49483at7898.fltrd_aligned.fas 49483at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/17053at7898.fltrd_aligned.fas 17053at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/98417at7898.fltrd_aligned.fas 98417at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/47827at7898.fltrd_aligned.fas 47827at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/73131at7898.fltrd_aligned.fas 73131at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/75224at7898.fltrd_aligned.fas 75224at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/116833at7898.fltrd_aligned.fas 116833at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/26997at7898.fltrd_aligned.fas 26997at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/107345at7898.fltrd_aligned.fas 107345at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/18951at7898.fltrd_aligned.fas 18951at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/13497at7898.fltrd_aligned.fas 13497at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/63087at7898.fltrd_aligned.fas 63087at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/39444at7898.fltrd_aligned.fas 39444at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/96879at7898.fltrd_aligned.fas 96879at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/37813at7898.fltrd_aligned.fas 37813at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/94258at7898.fltrd_aligned.fas 94258at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/46526at7898.fltrd_aligned.fas 46526at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/23025at7898.fltrd_aligned.fas 23025at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/71390at7898.fltrd_aligned.fas 71390at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/31260at7898.fltrd_aligned.fas 31260at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/21247at7898.fltrd_aligned.fas 21247at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/52264at7898.fltrd_aligned.fas 52264at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/25179at7898.fltrd_aligned.fas 25179at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/26633at7898.fltrd_aligned.fas 26633at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/88151at7898.fltrd_aligned.fas 88151at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/2390at7898.fltrd_aligned.fas 2390at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/19982at7898.fltrd_aligned.fas 19982at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/59275at7898.fltrd_aligned.fas 59275at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/110040at7898.fltrd_aligned.fas 110040at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/5033at7898.fltrd_aligned.fas 5033at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/128391at7898.fltrd_aligned.fas 128391at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/33187at7898.fltrd_aligned.fas 33187at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/134110at7898.fltrd_aligned.fas 134110at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/40244at7898.fltrd_aligned.fas 40244at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/90099at7898.fltrd_aligned.fas 90099at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/50418at7898.fltrd_aligned.fas 50418at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/17767at7898.fltrd_aligned.fas 17767at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/52178at7898.fltrd_aligned.fas 52178at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/114489at7898.fltrd_aligned.fas 114489at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/92215at7898.fltrd_aligned.fas 92215at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/65105at7898.fltrd_aligned.fas 65105at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/89699at7898.fltrd_aligned.fas 89699at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/108025at7898.fltrd_aligned.fas 108025at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/15509at7898.fltrd_aligned.fas 15509at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/77285at7898.fltrd_aligned.fas 77285at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/92824at7898.fltrd_aligned.fas 92824at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/40951at7898.fltrd_aligned.fas 40951at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/49753at7898.fltrd_aligned.fas 49753at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/14306at7898.fltrd_aligned.fas 14306at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/103973at7898.fltrd_aligned.fas 103973at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/20216at7898.fltrd_aligned.fas 20216at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/120952at7898.fltrd_aligned.fas 120952at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/10116at7898.fltrd_aligned.fas 10116at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/125275at7898.fltrd_aligned.fas 125275at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/33076at7898.fltrd_aligned.fas 33076at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/86078at7898.fltrd_aligned.fas 86078at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/78801at7898.fltrd_aligned.fas 78801at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/60444at7898.fltrd_aligned.fas 60444at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/115058at7898.fltrd_aligned.fas 115058at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/21408at7898.fltrd_aligned.fas 21408at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/15176at7898.fltrd_aligned.fas 15176at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/46980at7898.fltrd_aligned.fas 46980at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/60872at7898.fltrd_aligned.fas 60872at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/34208at7898.fltrd_aligned.fas 34208at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/84084at7898.fltrd_aligned.fas 84084at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/97401at7898.fltrd_aligned.fas 97401at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/92454at7898.fltrd_aligned.fas 92454at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/30503at7898.fltrd_aligned.fas 30503at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/35821at7898.fltrd_aligned.fas 35821at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/86472at7898.fltrd_aligned.fas 86472at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/118421at7898.fltrd_aligned.fas 118421at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/124705at7898.fltrd_aligned.fas 124705at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/127316at7898.fltrd_aligned.fas 127316at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/59812at7898.fltrd_aligned.fas 59812at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/48188at7898.fltrd_aligned.fas 48188at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/34955at7898.fltrd_aligned.fas 34955at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/117480at7898.fltrd_aligned.fas 117480at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/107099at7898.fltrd_aligned.fas 107099at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/102919at7898.fltrd_aligned.fas 102919at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/9402at7898.fltrd_aligned.fas 9402at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/4363at7898.fltrd_aligned.fas 4363at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/81631at7898.fltrd_aligned.fas 81631at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/71022at7898.fltrd_aligned.fas 71022at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/132357at7898.fltrd_aligned.fas 132357at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/22427at7898.fltrd_aligned.fas 22427at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/103032at7898.fltrd_aligned.fas 103032at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/86831at7898.fltrd_aligned.fas 86831at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/102726at7898.fltrd_aligned.fas 102726at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/135602at7898.fltrd_aligned.fas 135602at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/57608at7898.fltrd_aligned.fas 57608at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/117664at7898.fltrd_aligned.fas 117664at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/101684at7898.fltrd_aligned.fas 101684at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/29564at7898.fltrd_aligned.fas 29564at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/88231at7898.fltrd_aligned.fas 88231at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/118832at7898.fltrd_aligned.fas 118832at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/77193at7898.fltrd_aligned.fas 77193at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/127998at7898.fltrd_aligned.fas 127998at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/99238at7898.fltrd_aligned.fas 99238at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/74932at7898.fltrd_aligned.fas 74932at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/24246at7898.fltrd_aligned.fas 24246at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/53208at7898.fltrd_aligned.fas 53208at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/64005at7898.fltrd_aligned.fas 64005at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/94641at7898.fltrd_aligned.fas 94641at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/113029at7898.fltrd_aligned.fas 113029at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/81977at7898.fltrd_aligned.fas 81977at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/91863at7898.fltrd_aligned.fas 91863at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/79983at7898.fltrd_aligned.fas 79983at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/41789at7898.fltrd_aligned.fas 41789at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/106364at7898.fltrd_aligned.fas 106364at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/69778at7898.fltrd_aligned.fas 69778at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/103132at7898.fltrd_aligned.fas 103132at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/92906at7898.fltrd_aligned.fas 92906at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/8999at7898.fltrd_aligned.fas 8999at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/29849at7898.fltrd_aligned.fas 29849at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/41899at7898.fltrd_aligned.fas 41899at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/93189at7898.fltrd_aligned.fas 93189at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/16143at7898.fltrd_aligned.fas 16143at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/48499at7898.fltrd_aligned.fas 48499at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/31675at7898.fltrd_aligned.fas 31675at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/49986at7898.fltrd_aligned.fas 49986at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/61957at7898.fltrd_aligned.fas 61957at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/11195at7898.fltrd_aligned.fas 11195at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/27140at7898.fltrd_aligned.fas 27140at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/53661at7898.fltrd_aligned.fas 53661at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/103810at7898.fltrd_aligned.fas 103810at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/9905at7898.fltrd_aligned.fas 9905at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/119842at7898.fltrd_aligned.fas 119842at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/91225at7898.fltrd_aligned.fas 91225at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/65452at7898.fltrd_aligned.fas 65452at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/17983at7898.fltrd_aligned.fas 17983at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/40837at7898.fltrd_aligned.fas 40837at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/71896at7898.fltrd_aligned.fas 71896at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/132960at7898.fltrd_aligned.fas 132960at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/24967at7898.fltrd_aligned.fas 24967at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/90569at7898.fltrd_aligned.fas 90569at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/132089at7898.fltrd_aligned.fas 132089at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/69156at7898.fltrd_aligned.fas 69156at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/20181at7898.fltrd_aligned.fas 20181at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/6349at7898.fltrd_aligned.fas 6349at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/111680at7898.fltrd_aligned.fas 111680at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/4849at7898.fltrd_aligned.fas 4849at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/14734at7898.fltrd_aligned.fas 14734at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/41134at7898.fltrd_aligned.fas 41134at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/94808at7898.fltrd_aligned.fas 94808at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/91300at7898.fltrd_aligned.fas 91300at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/74101at7898.fltrd_aligned.fas 74101at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/132633at7898.fltrd_aligned.fas 132633at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/83174at7898.fltrd_aligned.fas 83174at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/135712at7898.fltrd_aligned.fas 135712at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/114888at7898.fltrd_aligned.fas 114888at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/80302at7898.fltrd_aligned.fas 80302at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/62557at7898.fltrd_aligned.fas 62557at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/68691at7898.fltrd_aligned.fas 68691at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/91500at7898.fltrd_aligned.fas 91500at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/85637at7898.fltrd_aligned.fas 85637at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/115074at7898.fltrd_aligned.fas 115074at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/33004at7898.fltrd_aligned.fas 33004at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/94717at7898.fltrd_aligned.fas 94717at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/97226at7898.fltrd_aligned.fas 97226at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/30966at7898.fltrd_aligned.fas 30966at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/26267at7898.fltrd_aligned.fas 26267at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/131304at7898.fltrd_aligned.fas 131304at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/2763at7898.fltrd_aligned.fas 2763at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/128226at7898.fltrd_aligned.fas 128226at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/90936at7898.fltrd_aligned.fas 90936at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/2494at7898.fltrd_aligned.fas 2494at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/101331at7898.fltrd_aligned.fas 101331at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/103779at7898.fltrd_aligned.fas 103779at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/71485at7898.fltrd_aligned.fas 71485at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/42410at7898.fltrd_aligned.fas 42410at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/51039at7898.fltrd_aligned.fas 51039at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/54335at7898.fltrd_aligned.fas 54335at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/82120at7898.fltrd_aligned.fas 82120at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/47571at7898.fltrd_aligned.fas 47571at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/31581at7898.fltrd_aligned.fas 31581at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/127626at7898.fltrd_aligned.fas 127626at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/112814at7898.fltrd_aligned.fas 112814at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/101323at7898.fltrd_aligned.fas 101323at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/67813at7898.fltrd_aligned.fas 67813at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/115662at7898.fltrd_aligned.fas 115662at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/8889at7898.fltrd_aligned.fas 8889at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/12741at7898.fltrd_aligned.fas 12741at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/43405at7898.fltrd_aligned.fas 43405at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/129703at7898.fltrd_aligned.fas 129703at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/131at7898.fltrd_aligned.fas 131at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/16891at7898.fltrd_aligned.fas 16891at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/14047at7898.fltrd_aligned.fas 14047at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/84014at7898.fltrd_aligned.fas 84014at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/68657at7898.fltrd_aligned.fas 68657at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/116829at7898.fltrd_aligned.fas 116829at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/107928at7898.fltrd_aligned.fas 107928at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/105028at7898.fltrd_aligned.fas 105028at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/136410at7898.fltrd_aligned.fas 136410at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/32800at7898.fltrd_aligned.fas 32800at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/90476at7898.fltrd_aligned.fas 90476at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/19695at7898.fltrd_aligned.fas 19695at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/112816at7898.fltrd_aligned.fas 112816at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/73915at7898.fltrd_aligned.fas 73915at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/50607at7898.fltrd_aligned.fas 50607at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/68020at7898.fltrd_aligned.fas 68020at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/36704at7898.fltrd_aligned.fas 36704at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/7550at7898.fltrd_aligned.fas 7550at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/77695at7898.fltrd_aligned.fas 77695at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/99590at7898.fltrd_aligned.fas 99590at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/56815at7898.fltrd_aligned.fas 56815at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/29462at7898.fltrd_aligned.fas 29462at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/6114at7898.fltrd_aligned.fas 6114at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/41747at7898.fltrd_aligned.fas 41747at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/35185at7898.fltrd_aligned.fas 35185at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/94238at7898.fltrd_aligned.fas 94238at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/54068at7898.fltrd_aligned.fas 54068at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/126273at7898.fltrd_aligned.fas 126273at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/31210at7898.fltrd_aligned.fas 31210at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/59587at7898.fltrd_aligned.fas 59587at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/90702at7898.fltrd_aligned.fas 90702at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/59418at7898.fltrd_aligned.fas 59418at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/93951at7898.fltrd_aligned.fas 93951at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/23556at7898.fltrd_aligned.fas 23556at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/125630at7898.fltrd_aligned.fas 125630at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/60636at7898.fltrd_aligned.fas 60636at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/60747at7898.fltrd_aligned.fas 60747at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/408at7898.fltrd_aligned.fas 408at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/46395at7898.fltrd_aligned.fas 46395at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/33929at7898.fltrd_aligned.fas 33929at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/23629at7898.fltrd_aligned.fas 23629at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/12994at7898.fltrd_aligned.fas 12994at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/67691at7898.fltrd_aligned.fas 67691at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/43538at7898.fltrd_aligned.fas 43538at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/74339at7898.fltrd_aligned.fas 74339at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/48856at7898.fltrd_aligned.fas 48856at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/80957at7898.fltrd_aligned.fas 80957at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/46260at7898.fltrd_aligned.fas 46260at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/102483at7898.fltrd_aligned.fas 102483at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/10527at7898.fltrd_aligned.fas 10527at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/80086at7898.fltrd_aligned.fas 80086at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/44441at7898.fltrd_aligned.fas 44441at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/76123at7898.fltrd_aligned.fas 76123at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/48841at7898.fltrd_aligned.fas 48841at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/90116at7898.fltrd_aligned.fas 90116at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/94835at7898.fltrd_aligned.fas 94835at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/24958at7898.fltrd_aligned.fas 24958at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/28017at7898.fltrd_aligned.fas 28017at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/105664at7898.fltrd_aligned.fas 105664at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/31290at7898.fltrd_aligned.fas 31290at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/107103at7898.fltrd_aligned.fas 107103at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/1955at7898.fltrd_aligned.fas 1955at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/44759at7898.fltrd_aligned.fas 44759at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/57468at7898.fltrd_aligned.fas 57468at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/100096at7898.fltrd_aligned.fas 100096at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/67088at7898.fltrd_aligned.fas 67088at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/20073at7898.fltrd_aligned.fas 20073at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/11000at7898.fltrd_aligned.fas 11000at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/52309at7898.fltrd_aligned.fas 52309at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/42298at7898.fltrd_aligned.fas 42298at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/102341at7898.fltrd_aligned.fas 102341at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/8043at7898.fltrd_aligned.fas 8043at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/105095at7898.fltrd_aligned.fas 105095at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/96031at7898.fltrd_aligned.fas 96031at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/81566at7898.fltrd_aligned.fas 81566at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/67503at7898.fltrd_aligned.fas 67503at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/88417at7898.fltrd_aligned.fas 88417at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/65771at7898.fltrd_aligned.fas 65771at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/75213at7898.fltrd_aligned.fas 75213at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/54447at7898.fltrd_aligned.fas 54447at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/11981at7898.fltrd_aligned.fas 11981at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/84753at7898.fltrd_aligned.fas 84753at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/94373at7898.fltrd_aligned.fas 94373at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/4029at7898.fltrd_aligned.fas 4029at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/133466at7898.fltrd_aligned.fas 133466at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/126482at7898.fltrd_aligned.fas 126482at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/124975at7898.fltrd_aligned.fas 124975at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/59132at7898.fltrd_aligned.fas 59132at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/82433at7898.fltrd_aligned.fas 82433at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/81606at7898.fltrd_aligned.fas 81606at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/5000at7898.fltrd_aligned.fas 5000at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/101590at7898.fltrd_aligned.fas 101590at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/63190at7898.fltrd_aligned.fas 63190at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/87165at7898.fltrd_aligned.fas 87165at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/7677at7898.fltrd_aligned.fas 7677at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/56659at7898.fltrd_aligned.fas 56659at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/63725at7898.fltrd_aligned.fas 63725at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/65974at7898.fltrd_aligned.fas 65974at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/128187at7898.fltrd_aligned.fas 128187at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/100034at7898.fltrd_aligned.fas 100034at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/45368at7898.fltrd_aligned.fas 45368at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/10419at7898.fltrd_aligned.fas 10419at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/95422at7898.fltrd_aligned.fas 95422at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/66325at7898.fltrd_aligned.fas 66325at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/19073at7898.fltrd_aligned.fas 19073at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/75173at7898.fltrd_aligned.fas 75173at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/39507at7898.fltrd_aligned.fas 39507at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/129162at7898.fltrd_aligned.fas 129162at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/82366at7898.fltrd_aligned.fas 82366at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/83369at7898.fltrd_aligned.fas 83369at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/93918at7898.fltrd_aligned.fas 93918at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/95887at7898.fltrd_aligned.fas 95887at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/38021at7898.fltrd_aligned.fas 38021at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/2589at7898.fltrd_aligned.fas 2589at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/80028at7898.fltrd_aligned.fas 80028at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/91626at7898.fltrd_aligned.fas 91626at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/42645at7898.fltrd_aligned.fas 42645at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/120265at7898.fltrd_aligned.fas 120265at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/15609at7898.fltrd_aligned.fas 15609at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/82818at7898.fltrd_aligned.fas 82818at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/50170at7898.fltrd_aligned.fas 50170at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/31865at7898.fltrd_aligned.fas 31865at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/117262at7898.fltrd_aligned.fas 117262at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/3133at7898.fltrd_aligned.fas 3133at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/92272at7898.fltrd_aligned.fas 92272at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/101853at7898.fltrd_aligned.fas 101853at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/70946at7898.fltrd_aligned.fas 70946at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/33798at7898.fltrd_aligned.fas 33798at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/52194at7898.fltrd_aligned.fas 52194at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/99157at7898.fltrd_aligned.fas 99157at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/80702at7898.fltrd_aligned.fas 80702at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/128240at7898.fltrd_aligned.fas 128240at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/119731at7898.fltrd_aligned.fas 119731at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/83172at7898.fltrd_aligned.fas 83172at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/129623at7898.fltrd_aligned.fas 129623at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/58475at7898.fltrd_aligned.fas 58475at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/104761at7898.fltrd_aligned.fas 104761at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/111683at7898.fltrd_aligned.fas 111683at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/51464at7898.fltrd_aligned.fas 51464at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/100668at7898.fltrd_aligned.fas 100668at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/40708at7898.fltrd_aligned.fas 40708at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/44744at7898.fltrd_aligned.fas 44744at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/12524at7898.fltrd_aligned.fas 12524at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/44752at7898.fltrd_aligned.fas 44752at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/124510at7898.fltrd_aligned.fas 124510at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/122857at7898.fltrd_aligned.fas 122857at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/12069at7898.fltrd_aligned.fas 12069at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/33269at7898.fltrd_aligned.fas 33269at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/88154at7898.fltrd_aligned.fas 88154at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/7492at7898.fltrd_aligned.fas 7492at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/52286at7898.fltrd_aligned.fas 52286at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/106489at7898.fltrd_aligned.fas 106489at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/10463at7898.fltrd_aligned.fas 10463at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/35145at7898.fltrd_aligned.fas 35145at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/56686at7898.fltrd_aligned.fas 56686at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/40221at7898.fltrd_aligned.fas 40221at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/121382at7898.fltrd_aligned.fas 121382at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/89012at7898.fltrd_aligned.fas 89012at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/15407at7898.fltrd_aligned.fas 15407at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/21851at7898.fltrd_aligned.fas 21851at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/73141at7898.fltrd_aligned.fas 73141at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/119687at7898.fltrd_aligned.fas 119687at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/28101at7898.fltrd_aligned.fas 28101at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/94267at7898.fltrd_aligned.fas 94267at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/81095at7898.fltrd_aligned.fas 81095at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/83776at7898.fltrd_aligned.fas 83776at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/90335at7898.fltrd_aligned.fas 90335at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/124488at7898.fltrd_aligned.fas 124488at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/110690at7898.fltrd_aligned.fas 110690at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/57759at7898.fltrd_aligned.fas 57759at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/115835at7898.fltrd_aligned.fas 115835at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/121198at7898.fltrd_aligned.fas 121198at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/113442at7898.fltrd_aligned.fas 113442at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/40445at7898.fltrd_aligned.fas 40445at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/12431at7898.fltrd_aligned.fas 12431at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/24927at7898.fltrd_aligned.fas 24927at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/91919at7898.fltrd_aligned.fas 91919at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/115817at7898.fltrd_aligned.fas 115817at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/113743at7898.fltrd_aligned.fas 113743at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/22170at7898.fltrd_aligned.fas 22170at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/7318at7898.fltrd_aligned.fas 7318at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/60988at7898.fltrd_aligned.fas 60988at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/76904at7898.fltrd_aligned.fas 76904at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/75726at7898.fltrd_aligned.fas 75726at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/71640at7898.fltrd_aligned.fas 71640at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/25090at7898.fltrd_aligned.fas 25090at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/86475at7898.fltrd_aligned.fas 86475at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/59832at7898.fltrd_aligned.fas 59832at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/78053at7898.fltrd_aligned.fas 78053at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/75989at7898.fltrd_aligned.fas 75989at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/16198at7898.fltrd_aligned.fas 16198at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/125363at7898.fltrd_aligned.fas 125363at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/61619at7898.fltrd_aligned.fas 61619at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/30172at7898.fltrd_aligned.fas 30172at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/37539at7898.fltrd_aligned.fas 37539at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/48419at7898.fltrd_aligned.fas 48419at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/124234at7898.fltrd_aligned.fas 124234at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/114251at7898.fltrd_aligned.fas 114251at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/55489at7898.fltrd_aligned.fas 55489at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/36496at7898.fltrd_aligned.fas 36496at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/94280at7898.fltrd_aligned.fas 94280at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/55833at7898.fltrd_aligned.fas 55833at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/70959at7898.fltrd_aligned.fas 70959at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/19346at7898.fltrd_aligned.fas 19346at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/59000at7898.fltrd_aligned.fas 59000at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/128929at7898.fltrd_aligned.fas 128929at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/7742at7898.fltrd_aligned.fas 7742at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/77607at7898.fltrd_aligned.fas 77607at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/14089at7898.fltrd_aligned.fas 14089at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/25660at7898.fltrd_aligned.fas 25660at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/91625at7898.fltrd_aligned.fas 91625at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/46278at7898.fltrd_aligned.fas 46278at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/88658at7898.fltrd_aligned.fas 88658at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/21515at7898.fltrd_aligned.fas 21515at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/62528at7898.fltrd_aligned.fas 62528at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/63521at7898.fltrd_aligned.fas 63521at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/102171at7898.fltrd_aligned.fas 102171at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/22569at7898.fltrd_aligned.fas 22569at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/3601at7898.fltrd_aligned.fas 3601at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/46756at7898.fltrd_aligned.fas 46756at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/41043at7898.fltrd_aligned.fas 41043at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/63023at7898.fltrd_aligned.fas 63023at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/118849at7898.fltrd_aligned.fas 118849at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/51014at7898.fltrd_aligned.fas 51014at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/74283at7898.fltrd_aligned.fas 74283at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/4012at7898.fltrd_aligned.fas 4012at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/10795at7898.fltrd_aligned.fas 10795at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/63810at7898.fltrd_aligned.fas 63810at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/3552at7898.fltrd_aligned.fas 3552at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/109244at7898.fltrd_aligned.fas 109244at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/43315at7898.fltrd_aligned.fas 43315at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/55089at7898.fltrd_aligned.fas 55089at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/23403at7898.fltrd_aligned.fas 23403at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/125543at7898.fltrd_aligned.fas 125543at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/73085at7898.fltrd_aligned.fas 73085at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/37053at7898.fltrd_aligned.fas 37053at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/84869at7898.fltrd_aligned.fas 84869at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/7429at7898.fltrd_aligned.fas 7429at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/119879at7898.fltrd_aligned.fas 119879at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/85850at7898.fltrd_aligned.fas 85850at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/91336at7898.fltrd_aligned.fas 91336at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/116841at7898.fltrd_aligned.fas 116841at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/51833at7898.fltrd_aligned.fas 51833at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/89247at7898.fltrd_aligned.fas 89247at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/61447at7898.fltrd_aligned.fas 61447at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/78743at7898.fltrd_aligned.fas 78743at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/82413at7898.fltrd_aligned.fas 82413at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/49806at7898.fltrd_aligned.fas 49806at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/50194at7898.fltrd_aligned.fas 50194at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/135748at7898.fltrd_aligned.fas 135748at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/74277at7898.fltrd_aligned.fas 74277at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/34128at7898.fltrd_aligned.fas 34128at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/40868at7898.fltrd_aligned.fas 40868at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/93901at7898.fltrd_aligned.fas 93901at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/117657at7898.fltrd_aligned.fas 117657at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/44394at7898.fltrd_aligned.fas 44394at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/118547at7898.fltrd_aligned.fas 118547at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/46295at7898.fltrd_aligned.fas 46295at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/17266at7898.fltrd_aligned.fas 17266at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/110738at7898.fltrd_aligned.fas 110738at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/92569at7898.fltrd_aligned.fas 92569at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/97223at7898.fltrd_aligned.fas 97223at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/124143at7898.fltrd_aligned.fas 124143at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/12210at7898.fltrd_aligned.fas 12210at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/75375at7898.fltrd_aligned.fas 75375at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/10070at7898.fltrd_aligned.fas 10070at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/68932at7898.fltrd_aligned.fas 68932at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/16782at7898.fltrd_aligned.fas 16782at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/85136at7898.fltrd_aligned.fas 85136at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/52334at7898.fltrd_aligned.fas 52334at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/49184at7898.fltrd_aligned.fas 49184at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/129701at7898.fltrd_aligned.fas 129701at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/3849at7898.fltrd_aligned.fas 3849at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/36250at7898.fltrd_aligned.fas 36250at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/77122at7898.fltrd_aligned.fas 77122at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/50630at7898.fltrd_aligned.fas 50630at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/84136at7898.fltrd_aligned.fas 84136at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/45665at7898.fltrd_aligned.fas 45665at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/121580at7898.fltrd_aligned.fas 121580at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/131078at7898.fltrd_aligned.fas 131078at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/80439at7898.fltrd_aligned.fas 80439at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/40709at7898.fltrd_aligned.fas 40709at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/32233at7898.fltrd_aligned.fas 32233at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/115098at7898.fltrd_aligned.fas 115098at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/83924at7898.fltrd_aligned.fas 83924at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/90261at7898.fltrd_aligned.fas 90261at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/35281at7898.fltrd_aligned.fas 35281at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/102792at7898.fltrd_aligned.fas 102792at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/23939at7898.fltrd_aligned.fas 23939at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/48424at7898.fltrd_aligned.fas 48424at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/59457at7898.fltrd_aligned.fas 59457at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/80648at7898.fltrd_aligned.fas 80648at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/28729at7898.fltrd_aligned.fas 28729at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/41198at7898.fltrd_aligned.fas 41198at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/79989at7898.fltrd_aligned.fas 79989at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/92372at7898.fltrd_aligned.fas 92372at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/131950at7898.fltrd_aligned.fas 131950at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/25470at7898.fltrd_aligned.fas 25470at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/8392at7898.fltrd_aligned.fas 8392at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/118122at7898.fltrd_aligned.fas 118122at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/7263at7898.fltrd_aligned.fas 7263at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/16290at7898.fltrd_aligned.fas 16290at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/115818at7898.fltrd_aligned.fas 115818at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/44652at7898.fltrd_aligned.fas 44652at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/115442at7898.fltrd_aligned.fas 115442at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/24280at7898.fltrd_aligned.fas 24280at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/35374at7898.fltrd_aligned.fas 35374at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/77737at7898.fltrd_aligned.fas 77737at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/7928at7898.fltrd_aligned.fas 7928at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/10796at7898.fltrd_aligned.fas 10796at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/109797at7898.fltrd_aligned.fas 109797at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/48135at7898.fltrd_aligned.fas 48135at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/116553at7898.fltrd_aligned.fas 116553at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/117049at7898.fltrd_aligned.fas 117049at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/118965at7898.fltrd_aligned.fas 118965at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/87714at7898.fltrd_aligned.fas 87714at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/64151at7898.fltrd_aligned.fas 64151at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/27390at7898.fltrd_aligned.fas 27390at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/23846at7898.fltrd_aligned.fas 23846at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/46855at7898.fltrd_aligned.fas 46855at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/85487at7898.fltrd_aligned.fas 85487at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/113135at7898.fltrd_aligned.fas 113135at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/91944at7898.fltrd_aligned.fas 91944at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/124297at7898.fltrd_aligned.fas 124297at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/28802at7898.fltrd_aligned.fas 28802at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/122672at7898.fltrd_aligned.fas 122672at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/65471at7898.fltrd_aligned.fas 65471at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/31300at7898.fltrd_aligned.fas 31300at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/45892at7898.fltrd_aligned.fas 45892at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/9337at7898.fltrd_aligned.fas 9337at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/7712at7898.fltrd_aligned.fas 7712at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/66594at7898.fltrd_aligned.fas 66594at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/112566at7898.fltrd_aligned.fas 112566at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/97525at7898.fltrd_aligned.fas 97525at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/66096at7898.fltrd_aligned.fas 66096at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/124690at7898.fltrd_aligned.fas 124690at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/21440at7898.fltrd_aligned.fas 21440at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/90348at7898.fltrd_aligned.fas 90348at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/106865at7898.fltrd_aligned.fas 106865at7898.fltrd_aligned.fas
+    ln -s /export/scratch/tsvanorden/Char_Phylogenetics/data/71953at7898.fltrd_aligned.fas 71953at7898.fltrd_aligned.fas
+}
+
+nxf_unstage_outputs() {
+    true
+}
+
+nxf_unstage_controls() {
+    true
+}
+
+nxf_unstage() {
+    if [[ ${nxf_main_ret:=0} == 0 ]]; then
+        (set -e -o pipefail; (nxf_unstage_outputs | tee -a .command.out) 3>&1 1>&2 2>&3 | tee -a .command.err)
+        nxf_unstage_ret=$?
+    fi
+    nxf_unstage_controls
+}
+
+nxf_main() {
+    trap on_exit EXIT
+    trap on_term TERM INT USR2
+    trap '' USR1
+
+    [[ "${NXF_CHDIR:-}" ]] && cd "$NXF_CHDIR"
+    NXF_SCRATCH=''
+    [[ $NXF_DEBUG > 0 ]] && nxf_env
+    touch /export/scratch/tsvanorden/Char_Phylogenetics/work/a9/497a26734fe13b737b8c9527870c7e/.command.begin
+    set +u
+    set -u
+    [[ $NXF_SCRATCH ]] && cd $NXF_SCRATCH
+    export NXF_TASK_WORKDIR="$PWD"
+    nxf_stage
+
+    set +e
+    (set -o pipefail; (nxf_launch | tee .command.out) 3>&1 1>&2 2>&3 | tee .command.err) &
+    pid=$!
+    wait $pid || nxf_main_ret=$?
+    nxf_unstage
+}
+
+$NXF_ENTRY

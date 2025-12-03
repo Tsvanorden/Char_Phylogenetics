@@ -1,0 +1,32 @@
+#nexus
+
+BEGIN Taxa;
+DIMENSIONS ntax=5;
+TAXLABELS
+[1] '251140_Ward_Creek'
+[2] '260512_Pybus_Point'
+[3] 'GCA016432855_Lake_Trout'
+[4] 'GCF013265735_Rainbow_Trout'
+[5] 'GCF029448725_Brook_Trout'
+;
+END; [Taxa]
+
+BEGIN Splits;
+DIMENSIONS ntax=5 nsplits=12;
+FORMAT labels=no weights=yes confidences=no intervals=no;
+MATRIX
+	100	 2,
+	100	 3,
+	100	 4,
+	100	 5,
+	32	 4 5,
+	99	 1 2,
+	100	 1,
+	28	 3 5,
+	40	 3 4,
+	0	 1 3,
+	0	 1 4,
+	0	 2 4,
+;
+END; [Splits]
+

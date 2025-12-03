@@ -1,0 +1,327 @@
+IQ-TREE multicore version 2.1.3 COVID-edition for Linux 64-bit built Apr 21 2021
+Developed by Bui Quang Minh, James Barbetti, Nguyen Lam Tung,
+Olga Chernomor, Heiko Schmidt, Dominik Schrempf, Michael Woodhams.
+
+Host:    gombessa.rcs.alaska.edu (AVX2, FMA3, 503 GB RAM)
+Command: /export/scratch/tsvanorden/Char_Phylogenetics/src/iqtree-2.1.3-Linux/bin/iqtree2 -s 56686at7898.fltrd_aligned.fas -m MFP -bb 1000 -T 1
+Seed:    826671 (Using SPRNG - Scalable Parallel Random Number Generator)
+Time:    Tue Dec  2 14:49:23 2025
+Kernel:  AVX+FMA - 1 threads (1 CPU cores detected)
+
+Reading alignment file 56686at7898.fltrd_aligned.fas ... Fasta format detected
+Alignment most likely contains DNA/RNA sequences
+Alignment has 20 sequences with 1485 columns, 54 distinct patterns
+8 parsimony-informative, 38 singleton sites, 1439 constant sites
+                                Gap/Ambiguity  Composition  p-value
+   1  251140_Ward_Creek                 0.00%    passed     99.50%
+   2  260512_Pybus_Point                0.00%    passed     99.50%
+   3  261935_Kenai_River                5.12%    passed     97.65%
+   4  353213_Cropley_Lake               0.00%    passed     99.50%
+   5  353219_Peterson_Creek             0.00%    passed     99.47%
+   6  353220_Fish_Creek                 0.00%    passed     99.50%
+   7  353246_Cottonwood_Creek           0.00%    passed     99.50%
+   8  353379_Skagit_River               5.86%    passed     97.18%
+   9  353381_Dungeness_River            6.33%    passed     95.32%
+  10  353401_Peace_River                5.86%    passed     96.88%
+  11  353407_Noatok                     0.00%    passed     99.60%
+  12  353410_Horizon_Lake               0.00%    passed     99.60%
+  13  92319_Little_Lost                15.76%    passed     97.27%
+  14  94280_St_Joe                      5.86%    passed     96.88%
+  15  GCA016432855_Lake_Trout           5.86%    passed     99.70%
+  16  GCA036784925_Maine_S_alpinus      0.00%    passed     99.60%
+  17  GCA045679555_Iceland_A_alpinus    0.00%    passed     99.60%
+  18  GCF013265735_Rainbow_Trout        5.86%    passed     95.06%
+  19  GCF029448725_Brook_Trout          5.86%    passed     97.86%
+  20  Methow_River_99895                5.86%    passed     96.88%
+****  TOTAL                             3.41%  0 sequences failed composition chi2 test (p-value<5%; df=3)
+NOTE: 260512_Pybus_Point is identical to 251140_Ward_Creek but kept for subsequent analysis
+NOTE: 94280_St_Joe is identical to 353401_Peace_River but kept for subsequent analysis
+NOTE: 353410_Horizon_Lake is identical to 353407_Noatok but kept for subsequent analysis
+NOTE: 6 identical sequences (see below) will be ignored for subsequent analysis
+NOTE: 353213_Cropley_Lake (identical to 251140_Ward_Creek) is ignored but added at the end
+NOTE: 353220_Fish_Creek (identical to 251140_Ward_Creek) is ignored but added at the end
+NOTE: 353246_Cottonwood_Creek (identical to 251140_Ward_Creek) is ignored but added at the end
+NOTE: Methow_River_99895 (identical to 353401_Peace_River) is ignored but added at the end
+NOTE: GCA036784925_Maine_S_alpinus (identical to 353407_Noatok) is ignored but added at the end
+NOTE: GCA045679555_Iceland_A_alpinus (identical to 353407_Noatok) is ignored but added at the end
+Alignment was printed to 56686at7898.fltrd_aligned.fas.uniqueseq.phy
+
+For your convenience alignment with unique sequences printed to 56686at7898.fltrd_aligned.fas.uniqueseq.phy
+
+
+Create initial parsimony tree by phylogenetic likelihood library (PLL)... 0.000 seconds
+Perform fast likelihood tree search using GTR+I+G model...
+Estimate model parameters (epsilon = 5.000)
+Perform nearest neighbor interchange...
+Estimate model parameters (epsilon = 1.000)
+1. Initial log-likelihood: -2384.556
+Optimal log-likelihood: -2384.556
+Rate parameters:  A-C: 0.63682  A-G: 0.85780  A-T: 0.60996  C-G: 0.41054  C-T: 2.52216  G-T: 1.00000
+Base frequencies:  A: 0.230  C: 0.267  G: 0.276  T: 0.227
+Proportion of invariable sites: 0.484
+Gamma shape alpha: 998.420
+Parameters optimization took 1 rounds (0.001 sec)
+Time for fast ML tree search: 0.006 seconds
+
+NOTE: ModelFinder requires 0 MB RAM!
+ModelFinder will test up to 286 DNA models (sample size: 1485) ...
+ No. Model         -LnL         df  AIC          AICc         BIC
+  1  GTR+F         2384.673     33  4835.347     4836.893     5010.351
+  2  GTR+F+I       2384.548     34  4837.095     4838.737     5017.403
+  3  GTR+F+G4      2384.546     34  4837.092     4838.733     5017.400
+  4  GTR+F+I+G4    2384.556     35  4839.113     4840.852     5024.724
+  5  GTR+F+R2      2384.558     35  4839.116     4840.855     5024.727
+  6  GTR+F+R3      2384.548     37  4843.095     4845.039     5039.313
+ 14  SYM           2389.277     30  4838.554     4839.833     4997.649
+ 15  SYM+I         2389.153     31  4840.306     4841.671     5004.704
+ 16  SYM+G4        2389.151     31  4840.302     4841.668     5004.701
+ 27  TVM+F         2387.936     32  4839.871     4841.326     5009.573
+ 28  TVM+F+I       2387.819     33  4841.637     4843.184     5016.642
+ 29  TVM+F+G4      2387.817     33  4841.633     4843.180     5016.638
+ 40  TVMe          2392.377     29  4842.754     4843.950     4996.546
+ 41  TVMe+I        2392.261     30  4844.522     4845.801     5003.617
+ 42  TVMe+G4       2392.259     30  4844.519     4845.798     5003.614
+ 53  TIM3+F        2385.214     31  4832.428     4833.794     4996.827
+ 54  TIM3+F+I      2385.080     32  4834.161     4835.615     5003.862
+ 55  TIM3+F+G4     2385.079     32  4834.158     4835.613     5003.860
+ 66  TIM3e         2389.875     28  4835.750     4836.865     4984.239
+ 67  TIM3e+I       2389.743     29  4837.486     4838.682     4991.278
+ 68  TIM3e+G4      2389.742     29  4837.483     4838.679     4991.275
+ 79  TIM2+F        2385.745     31  4833.491     4834.856     4997.889
+ 80  TIM2+F+I      2385.612     32  4835.224     4836.679     5004.925
+ 81  TIM2+F+G4     2385.611     32  4835.221     4836.676     5004.923
+ 92  TIM2e         2390.152     28  4836.304     4837.419     4984.792
+ 93  TIM2e+I       2390.037     29  4838.073     4839.269     4991.865
+ 94  TIM2e+G4      2390.035     29  4838.070     4839.266     4991.862
+105  TIM+F         2385.138     31  4832.276     4833.641     4996.674
+106  TIM+F+I       2385.007     32  4834.014     4835.469     5003.716
+107  TIM+F+G4      2385.006     32  4834.011     4835.466     5003.713
+118  TIMe          2389.655     28  4835.310     4836.426     4983.799
+119  TIMe+I        2389.522     29  4837.044     4838.240     4990.836
+120  TIMe+G4       2389.521     29  4837.041     4838.237     4990.833
+131  TPM3u+F       2388.474     30  4836.947     4838.227     4996.042
+132  TPM3u+F+I     2388.347     31  4838.693     4840.058     5003.091
+133  TPM3u+F+G4    2388.345     31  4838.691     4840.056     5003.089
+144  TPM3+F        2388.474     30  4836.947     4838.227     4996.042
+145  TPM3+F+I      2388.347     31  4838.693     4840.058     5003.091
+146  TPM3+F+G4     2388.345     31  4838.691     4840.056     5003.089
+157  TPM2u+F       2389.002     30  4838.004     4839.283     4997.099
+158  TPM2u+F+I     2388.880     31  4839.759     4841.125     5004.158
+159  TPM2u+F+G4    2388.871     31  4839.742     4841.107     5004.140
+170  TPM2+F        2389.002     30  4838.004     4839.283     4997.099
+171  TPM2+F+I      2388.880     31  4839.759     4841.125     5004.158
+172  TPM2+F+G4     2388.871     31  4839.742     4841.107     5004.140
+183  K3Pu+F        2388.396     30  4836.792     4838.072     4995.887
+184  K3Pu+F+I      2388.270     31  4838.540     4839.905     5002.938
+185  K3Pu+F+G4     2388.268     31  4838.536     4839.902     5002.934
+196  K3P           2392.755     27  4839.510     4840.548     4982.695
+197  K3P+I         2392.630     28  4841.260     4842.376     4989.749
+198  K3P+G4        2392.628     28  4841.257     4842.372     4989.746
+209  TN+F          2385.769     30  4831.539     4832.818     4990.634
+210  TN+F+I        2385.633     31  4833.267     4834.632     4997.665
+211  TN+F+G4       2385.632     31  4833.264     4834.630     4997.663
+222  TNe           2390.248     27  4834.495     4835.533     4977.681
+223  TNe+I         2390.109     28  4836.218     4837.333     4984.706
+224  TNe+G4        2390.107     28  4836.215     4837.330     4984.703
+235  HKY+F         2389.028     29  4836.056     4837.252     4989.848
+236  HKY+F+I       2388.895     30  4837.791     4839.070     4996.886
+237  HKY+F+G4      2388.894     30  4837.788     4839.067     4996.883
+248  K2P           2393.348     26  4838.696     4839.659     4976.578
+249  K2P+I         2393.218     27  4840.435     4841.473     4983.621
+250  K2P+G4        2393.216     27  4840.432     4841.469     4983.617
+261  F81+F         2393.874     28  4843.747     4844.863     4992.236
+262  F81+F+I       2393.744     29  4845.487     4846.683     4999.279
+263  F81+F+G4      2393.743     29  4845.486     4846.682     4999.278
+274  JC            2398.116     25  4846.231     4847.122     4978.811
+275  JC+I          2397.986     26  4847.971     4848.934     4985.854
+276  JC+G4         2397.985     26  4847.970     4848.933     4985.852
+Akaike Information Criterion:           TN+F
+Corrected Akaike Information Criterion: TN+F
+Bayesian Information Criterion:         K2P
+Best-fit model: K2P chosen according to BIC
+
+All model information printed to 56686at7898.fltrd_aligned.fas.model.gz
+CPU time for ModelFinder: 0.069 seconds (0h:0m:0s)
+Wall-clock time for ModelFinder: 0.074 seconds (0h:0m:0s)
+Generating 1000 samples for ultrafast bootstrap (seed: 826671)...
+
+NOTE: 0 MB RAM (0 GB) is required!
+Estimate model parameters (epsilon = 0.100)
+1. Initial log-likelihood: -2393.348
+Optimal log-likelihood: -2393.348
+Rate parameters:  A-C: 1.00000  A-G: 2.50234  A-T: 1.00000  C-G: 1.00000  C-T: 2.50234  G-T: 1.00000
+Base frequencies:  A: 0.250  C: 0.250  G: 0.250  T: 0.250
+Parameters optimization took 1 rounds (0.000 sec)
+Computing ML distances based on estimated model parameters...
+Computing ML distances took 0.000822 sec (of wall-clock time) 0.000804 sec(of CPU time)
+Computing RapidNJ tree took 0.008059 sec (of wall-clock time) 0.000776 sec (of CPU time)
+Log-likelihood of RapidNJ tree: -2398.063
+--------------------------------------------------------------------
+|             INITIALIZING CANDIDATE TREE SET                      |
+--------------------------------------------------------------------
+Generating 98 parsimony trees... 0.021 second
+Computing log-likelihood of 98 initial trees ... 0.018 seconds
+Current best score: -2393.348
+
+Do NNI search on 20 best initial trees
+Estimate model parameters (epsilon = 0.100)
+BETTER TREE FOUND at iteration 1: -2393.348
+UPDATE BEST LOG-LIKELIHOOD: -2393.348
+UPDATE BEST LOG-LIKELIHOOD: -2393.348
+Iteration 10 / LogL: -2393.348 / Time: 0h:0m:0s
+UPDATE BEST LOG-LIKELIHOOD: -2393.348
+UPDATE BEST LOG-LIKELIHOOD: -2393.348
+Iteration 20 / LogL: -2393.348 / Time: 0h:0m:0s
+Finish initializing candidate tree set (4)
+Current best tree score: -2393.348 / CPU time: 0.146
+Number of iterations: 20
+--------------------------------------------------------------------
+|               OPTIMIZING CANDIDATE TREE SET                      |
+--------------------------------------------------------------------
+Iteration 30 / LogL: -2393.435 / Time: 0h:0m:0s (0h:0m:0s left)
+Iteration 40 / LogL: -2393.350 / Time: 0h:0m:0s (0h:0m:0s left)
+UPDATE BEST LOG-LIKELIHOOD: -2393.348
+Iteration 50 / LogL: -2393.351 / Time: 0h:0m:0s (0h:0m:0s left)
+Log-likelihood cutoff on original alignment: -2417.540
+UPDATE BEST LOG-LIKELIHOOD: -2393.348
+Iteration 60 / LogL: -2393.350 / Time: 0h:0m:0s (0h:0m:0s left)
+Iteration 70 / LogL: -2393.348 / Time: 0h:0m:0s (0h:0m:0s left)
+Iteration 80 / LogL: -2393.358 / Time: 0h:0m:0s (0h:0m:0s left)
+Iteration 90 / LogL: -2393.446 / Time: 0h:0m:0s (0h:0m:0s left)
+Iteration 100 / LogL: -2393.350 / Time: 0h:0m:0s (0h:0m:0s left)
+Log-likelihood cutoff on original alignment: -2420.072
+NOTE: Bootstrap correlation coefficient of split occurrence frequencies: 0.978
+NOTE: UFBoot does not converge, continue at least 100 more iterations
+UPDATE BEST LOG-LIKELIHOOD: -2393.348
+Iteration 110 / LogL: -2393.351 / Time: 0h:0m:0s (0h:0m:0s left)
+Iteration 120 / LogL: -2393.348 / Time: 0h:0m:0s (0h:0m:0s left)
+Iteration 130 / LogL: -2393.350 / Time: 0h:0m:0s (0h:0m:0s left)
+Iteration 140 / LogL: -2393.348 / Time: 0h:0m:0s (0h:0m:0s left)
+Iteration 150 / LogL: -2393.382 / Time: 0h:0m:0s (0h:0m:0s left)
+Log-likelihood cutoff on original alignment: -2422.839
+Iteration 160 / LogL: -2393.446 / Time: 0h:0m:0s (0h:0m:0s left)
+Iteration 170 / LogL: -2414.369 / Time: 0h:0m:1s (0h:0m:0s left)
+Iteration 180 / LogL: -2415.988 / Time: 0h:0m:1s (0h:0m:0s left)
+Iteration 190 / LogL: -2393.351 / Time: 0h:0m:1s (0h:0m:0s left)
+Iteration 200 / LogL: -2393.472 / Time: 0h:0m:1s (0h:0m:0s left)
+Log-likelihood cutoff on original alignment: -2421.921
+NOTE: Bootstrap correlation coefficient of split occurrence frequencies: 0.971
+NOTE: UFBoot does not converge, continue at least 100 more iterations
+Iteration 210 / LogL: -2393.350 / Time: 0h:0m:1s (0h:0m:0s left)
+Iteration 220 / LogL: -2393.463 / Time: 0h:0m:1s (0h:0m:0s left)
+Iteration 230 / LogL: -2393.349 / Time: 0h:0m:1s (0h:0m:0s left)
+Iteration 240 / LogL: -2393.348 / Time: 0h:0m:1s (0h:0m:0s left)
+UPDATE BEST LOG-LIKELIHOOD: -2393.348
+Iteration 250 / LogL: -2393.354 / Time: 0h:0m:1s (0h:0m:0s left)
+Log-likelihood cutoff on original alignment: -2421.921
+Iteration 260 / LogL: -2393.348 / Time: 0h:0m:1s (0h:0m:0s left)
+Iteration 270 / LogL: -2393.488 / Time: 0h:0m:1s (0h:0m:0s left)
+UPDATE BEST LOG-LIKELIHOOD: -2393.348
+Iteration 280 / LogL: -2393.445 / Time: 0h:0m:1s (0h:0m:0s left)
+Iteration 290 / LogL: -2393.351 / Time: 0h:0m:1s (0h:0m:0s left)
+Iteration 300 / LogL: -2393.349 / Time: 0h:0m:1s (0h:0m:0s left)
+Log-likelihood cutoff on original alignment: -2422.643
+NOTE: Bootstrap correlation coefficient of split occurrence frequencies: 0.987
+NOTE: UFBoot does not converge, continue at least 100 more iterations
+Iteration 310 / LogL: -2393.382 / Time: 0h:0m:1s (0h:0m:0s left)
+Iteration 320 / LogL: -2393.348 / Time: 0h:0m:1s (0h:0m:0s left)
+Iteration 330 / LogL: -2393.351 / Time: 0h:0m:1s (0h:0m:0s left)
+Iteration 340 / LogL: -2393.351 / Time: 0h:0m:2s (0h:0m:0s left)
+Iteration 350 / LogL: -2393.352 / Time: 0h:0m:2s (0h:0m:0s left)
+Log-likelihood cutoff on original alignment: -2422.643
+Iteration 360 / LogL: -2393.348 / Time: 0h:0m:2s (0h:0m:0s left)
+Iteration 370 / LogL: -2393.348 / Time: 0h:0m:2s (0h:0m:0s left)
+UPDATE BEST LOG-LIKELIHOOD: -2393.348
+UPDATE BEST LOG-LIKELIHOOD: -2393.348
+Iteration 380 / LogL: -2393.350 / Time: 0h:0m:2s (0h:0m:0s left)
+Iteration 390 / LogL: -2393.465 / Time: 0h:0m:2s (0h:0m:0s left)
+UPDATE BEST LOG-LIKELIHOOD: -2393.348
+Iteration 400 / LogL: -2393.352 / Time: 0h:0m:2s (0h:0m:0s left)
+Log-likelihood cutoff on original alignment: -2422.643
+NOTE: Bootstrap correlation coefficient of split occurrence frequencies: 0.981
+NOTE: UFBoot does not converge, continue at least 100 more iterations
+UPDATE BEST LOG-LIKELIHOOD: -2393.348
+Iteration 410 / LogL: -2393.349 / Time: 0h:0m:2s (0h:0m:0s left)
+UPDATE BEST LOG-LIKELIHOOD: -2393.348
+Iteration 420 / LogL: -2393.354 / Time: 0h:0m:2s (0h:0m:0s left)
+Iteration 430 / LogL: -2393.348 / Time: 0h:0m:2s (0h:0m:0s left)
+Iteration 440 / LogL: -2393.348 / Time: 0h:0m:2s (0h:0m:0s left)
+Iteration 450 / LogL: -2393.352 / Time: 0h:0m:2s (0h:0m:0s left)
+Log-likelihood cutoff on original alignment: -2422.643
+Iteration 460 / LogL: -2393.348 / Time: 0h:0m:2s (0h:0m:0s left)
+Iteration 470 / LogL: -2393.354 / Time: 0h:0m:2s (0h:0m:0s left)
+Iteration 480 / LogL: -2393.348 / Time: 0h:0m:3s (0h:0m:0s left)
+Iteration 490 / LogL: -2393.469 / Time: 0h:0m:3s (0h:0m:0s left)
+Iteration 500 / LogL: -2393.348 / Time: 0h:0m:3s (0h:0m:0s left)
+Log-likelihood cutoff on original alignment: -2422.643
+NOTE: Bootstrap correlation coefficient of split occurrence frequencies: 0.988
+NOTE: UFBoot does not converge, continue at least 100 more iterations
+Iteration 510 / LogL: -2393.457 / Time: 0h:0m:3s (0h:0m:0s left)
+Iteration 520 / LogL: -2393.474 / Time: 0h:0m:3s (0h:0m:0s left)
+Iteration 530 / LogL: -2415.989 / Time: 0h:0m:3s (0h:0m:0s left)
+Iteration 540 / LogL: -2393.382 / Time: 0h:0m:3s (0h:0m:0s left)
+Iteration 550 / LogL: -2393.348 / Time: 0h:0m:3s (0h:0m:0s left)
+Log-likelihood cutoff on original alignment: -2423.492
+Iteration 560 / LogL: -2393.350 / Time: 0h:0m:3s (0h:0m:0s left)
+Iteration 570 / LogL: -2393.350 / Time: 0h:0m:3s (0h:0m:0s left)
+Iteration 580 / LogL: -2393.354 / Time: 0h:0m:3s (0h:0m:0s left)
+Iteration 590 / LogL: -2393.348 / Time: 0h:0m:3s (0h:0m:0s left)
+Iteration 600 / LogL: -2393.350 / Time: 0h:0m:3s (0h:0m:0s left)
+Log-likelihood cutoff on original alignment: -2423.492
+NOTE: Bootstrap correlation coefficient of split occurrence frequencies: 0.981
+NOTE: UFBoot does not converge, continue at least 100 more iterations
+Iteration 610 / LogL: -2393.348 / Time: 0h:0m:4s (0h:0m:0s left)
+Iteration 620 / LogL: -2393.350 / Time: 0h:0m:4s (0h:0m:0s left)
+Iteration 630 / LogL: -2393.446 / Time: 0h:0m:4s (0h:0m:0s left)
+Iteration 640 / LogL: -2393.349 / Time: 0h:0m:4s (0h:0m:0s left)
+UPDATE BEST LOG-LIKELIHOOD: -2393.348
+Iteration 650 / LogL: -2393.350 / Time: 0h:0m:4s (0h:0m:0s left)
+Log-likelihood cutoff on original alignment: -2423.492
+Iteration 660 / LogL: -2401.840 / Time: 0h:0m:4s (0h:0m:0s left)
+Iteration 670 / LogL: -2394.388 / Time: 0h:0m:4s (0h:0m:0s left)
+Iteration 680 / LogL: -2393.348 / Time: 0h:0m:4s (0h:0m:0s left)
+Iteration 690 / LogL: -2393.348 / Time: 0h:0m:4s (0h:0m:0s left)
+Iteration 700 / LogL: -2393.348 / Time: 0h:0m:4s (0h:0m:0s left)
+Log-likelihood cutoff on original alignment: -2423.492
+NOTE: Bootstrap correlation coefficient of split occurrence frequencies: 0.991
+TREE SEARCH COMPLETED AFTER 700 ITERATIONS / Time: 0h:0m:4s
+
+--------------------------------------------------------------------
+|                    FINALIZING TREE SEARCH                        |
+--------------------------------------------------------------------
+Performs final model parameters optimization
+Estimate model parameters (epsilon = 0.010)
+1. Initial log-likelihood: -2393.348
+Optimal log-likelihood: -2393.348
+Rate parameters:  A-C: 1.00000  A-G: 2.49822  A-T: 1.00000  C-G: 1.00000  C-T: 2.49822  G-T: 1.00000
+Base frequencies:  A: 0.250  C: 0.250  G: 0.250  T: 0.250
+Parameters optimization took 1 rounds (0.000 sec)
+BEST SCORE FOUND : -2393.348
+Creating bootstrap support values...
+Split supports printed to NEXUS file 56686at7898.fltrd_aligned.fas.splits.nex
+Total tree length: 0.034
+
+Total number of iterations: 700
+CPU time used for tree search: 4.620 sec (0h:0m:4s)
+Wall-clock time used for tree search: 4.758 sec (0h:0m:4s)
+Total CPU time used: 4.657 sec (0h:0m:4s)
+Total wall-clock time used: 4.805 sec (0h:0m:4s)
+
+Computing bootstrap consensus tree...
+Reading input file 56686at7898.fltrd_aligned.fas.splits.nex...
+14 taxa and 193 splits.
+Consensus tree written to 56686at7898.fltrd_aligned.fas.contree
+Reading input trees file 56686at7898.fltrd_aligned.fas.contree
+Log-likelihood of consensus tree: -2393.371
+
+Analysis results written to: 
+  IQ-TREE report:                56686at7898.fltrd_aligned.fas.iqtree
+  Maximum-likelihood tree:       56686at7898.fltrd_aligned.fas.treefile
+  Likelihood distances:          56686at7898.fltrd_aligned.fas.mldist
+
+Ultrafast bootstrap approximation results written to:
+  Split support values:          56686at7898.fltrd_aligned.fas.splits.nex
+  Consensus tree:                56686at7898.fltrd_aligned.fas.contree
+  Screen log file:               56686at7898.fltrd_aligned.fas.log
+
+Date and Time: Tue Dec  2 14:49:28 2025

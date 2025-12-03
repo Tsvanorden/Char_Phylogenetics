@@ -1,0 +1,254 @@
+IQ-TREE multicore version 2.1.3 COVID-edition for Linux 64-bit built Apr 21 2021
+Developed by Bui Quang Minh, James Barbetti, Nguyen Lam Tung,
+Olga Chernomor, Heiko Schmidt, Dominik Schrempf, Michael Woodhams.
+
+Host:    gombessa.rcs.alaska.edu (AVX2, FMA3, 503 GB RAM)
+Command: /export/scratch/tsvanorden/Char_Phylogenetics/src/iqtree-2.1.3-Linux/bin/iqtree2 -s 11834at7898.fltrd_aligned.fas -m MFP -bb 1000 -T 1
+Seed:    538866 (Using SPRNG - Scalable Parallel Random Number Generator)
+Time:    Tue Dec  2 14:50:13 2025
+Kernel:  AVX+FMA - 1 threads (1 CPU cores detected)
+
+Reading alignment file 11834at7898.fltrd_aligned.fas ... Fasta format detected
+Alignment most likely contains DNA/RNA sequences
+WARNING: 99 sites contain only gaps or ambiguous characters.
+Alignment has 20 sequences with 3240 columns, 86 distinct patterns
+20 parsimony-informative, 77 singleton sites, 3143 constant sites
+                                Gap/Ambiguity  Composition  p-value
+   1  251140_Ward_Creek                17.87%    passed     98.39%
+   2  260512_Pybus_Point                6.76%    passed     99.96%
+   3  261935_Kenai_River               17.87%    passed     98.39%
+   4  353213_Cropley_Lake               6.76%    passed     99.94%
+   5  353219_Peterson_Creek             6.76%    passed     99.94%
+   6  353220_Fish_Creek                17.78%    passed     98.15%
+   7  353246_Cottonwood_Creek           6.76%    passed     99.91%
+   8  353379_Skagit_River               7.96%    passed     99.15%
+   9  353381_Dungeness_River           10.03%    passed     99.75%
+  10  353401_Peace_River                7.96%    passed     99.15%
+  11  353407_Noatok                     6.94%    passed     99.91%
+  12  353410_Horizon_Lake               6.76%    passed     99.97%
+  13  92319_Little_Lost                 7.96%    passed     99.35%
+  14  94280_St_Joe                      7.96%    passed     99.15%
+  15  GCA016432855_Lake_Trout           6.76%    passed     99.68%
+  16  GCA036784925_Maine_S_alpinus      6.76%    passed     99.94%
+  17  GCA045679555_Iceland_A_alpinus    6.76%    passed     99.94%
+  18  GCF013265735_Rainbow_Trout        3.24%    passed     63.08%
+  19  GCF029448725_Brook_Trout          6.76%    passed     99.73%
+  20  Methow_River_99895                7.96%    passed     99.15%
+****  TOTAL                             8.72%  0 sequences failed composition chi2 test (p-value<5%; df=3)
+NOTE: 261935_Kenai_River is identical to 251140_Ward_Creek but kept for subsequent analysis
+NOTE: 353219_Peterson_Creek is identical to 353213_Cropley_Lake but kept for subsequent analysis
+NOTE: 94280_St_Joe is identical to 353401_Peace_River but kept for subsequent analysis
+NOTE: GCA045679555_Iceland_A_alpinus is identical to GCA036784925_Maine_S_alpinus but kept for subsequent analysis
+
+
+Create initial parsimony tree by phylogenetic likelihood library (PLL)... 0.000 seconds
+Perform fast likelihood tree search using GTR+I+G model...
+Estimate model parameters (epsilon = 5.000)
+Perform nearest neighbor interchange...
+Estimate model parameters (epsilon = 1.000)
+1. Initial log-likelihood: -5053.153
+Optimal log-likelihood: -5053.151
+Rate parameters:  A-C: 0.82368  A-G: 2.21048  A-T: 1.14025  C-G: 0.71954  C-T: 2.60044  G-T: 1.00000
+Base frequencies:  A: 0.237  C: 0.267  G: 0.286  T: 0.210
+Proportion of invariable sites: 0.484
+Gamma shape alpha: 0.158
+Parameters optimization took 1 rounds (0.002 sec)
+Time for fast ML tree search: 0.014 seconds
+
+NOTE: ModelFinder requires 0 MB RAM!
+ModelFinder will test up to 286 DNA models (sample size: 3240) ...
+ No. Model         -LnL         df  AIC          AICc         BIC
+  1  GTR+F         5059.833     45  10209.667    10210.963    10483.416
+  2  GTR+F+I       5053.143     46  10198.287    10199.641    10478.120
+  3  GTR+F+G4      5053.902     46  10199.805    10201.159    10479.638
+  4  GTR+F+I+G4    5053.148     47  10200.296    10201.710    10486.213
+  5  GTR+F+R2      5057.823     47  10209.647    10211.060    10495.563
+  6  GTR+F+R3      5056.100     49  10210.200    10211.736    10508.283
+ 14  SYM           5075.560     42  10235.120    10236.250    10490.620
+ 15  SYM+I         5069.242     43  10224.484    10225.668    10486.067
+ 16  SYM+G4        5069.825     43  10225.651    10226.835    10487.234
+ 17  SYM+I+G4      5069.257     44  10226.514    10227.753    10494.180
+ 27  TVM+F         5060.000     44  10207.999    10209.239    10475.666
+ 28  TVM+F+I       5053.291     45  10196.581    10197.878    10470.331
+ 29  TVM+F+G4      5054.062     45  10198.125    10199.421    10471.875
+ 30  TVM+F+I+G4    5053.299     46  10198.598    10199.952    10478.431
+ 40  TVMe          5075.591     41  10233.183    10234.260    10482.599
+ 41  TVMe+I        5069.254     42  10222.508    10223.638    10478.008
+ 42  TVMe+G4       5069.850     42  10223.700    10224.829    10479.199
+ 43  TVMe+I+G4     5069.270     43  10224.540    10225.724    10486.123
+ 53  TIM3+F        5059.898     43  10205.796    10206.980    10467.379
+ 54  TIM3+F+I      5053.212     44  10194.425    10195.664    10462.091
+ 55  TIM3+F+G4     5053.967     44  10195.933    10197.173    10463.600
+ 56  TIM3+F+I+G4   5053.220     45  10196.440    10197.736    10470.190
+ 66  TIM3e         5075.561     40  10231.121    10232.147    10474.454
+ 67  TIM3e+I       5069.248     41  10220.496    10221.572    10469.912
+ 68  TIM3e+G4      5069.825     41  10221.651    10222.728    10471.067
+ 69  TIM3e+I+G4    5069.263     42  10222.526    10223.656    10478.026
+ 79  TIM2+F        5060.155     43  10206.310    10207.494    10467.893
+ 80  TIM2+F+I      5053.712     44  10195.425    10196.664    10463.091
+ 81  TIM2+F+G4     5054.341     44  10196.682    10197.922    10464.349
+ 82  TIM2+F+I+G4   5053.723     45  10197.446    10198.742    10471.196
+ 92  TIM2e         5075.638     40  10231.275    10232.300    10474.608
+ 93  TIM2e+I       5069.416     41  10220.833    10221.910    10470.249
+ 94  TIM2e+G4      5069.951     41  10221.902    10222.979    10471.319
+ 95  TIM2e+I+G4    5069.435     42  10222.870    10224.000    10478.370
+105  TIM+F         5060.223     43  10206.446    10207.630    10468.029
+106  TIM+F+I       5053.762     44  10195.523    10196.763    10463.190
+107  TIM+F+G4      5054.400     44  10196.800    10198.039    10464.466
+108  TIM+F+I+G4    5053.775     45  10197.550    10198.846    10471.299
+118  TIMe          5075.641     40  10231.282    10232.308    10474.616
+119  TIMe+I        5069.416     41  10220.832    10221.909    10470.249
+120  TIMe+G4       5069.952     41  10221.905    10222.982    10471.321
+121  TIMe+I+G4     5069.435     42  10222.869    10223.999    10478.369
+131  TPM3u+F       5060.065     42  10204.129    10205.259    10459.629
+132  TPM3u+F+I     5053.362     43  10192.724    10193.908    10454.307
+133  TPM3u+F+G4    5054.126     43  10194.251    10195.435    10455.834
+134  TPM3u+F+I+G4  5053.373     44  10194.745    10195.985    10462.412
+144  TPM3+F        5060.065     42  10204.129    10205.259    10459.629
+145  TPM3+F+I      5053.362     43  10192.724    10193.908    10454.307
+146  TPM3+F+G4     5054.126     43  10194.251    10195.435    10455.834
+147  TPM3+F+I+G4   5053.373     44  10194.745    10195.985    10462.412
+157  TPM2u+F       5060.322     42  10204.645    10205.774    10460.144
+158  TPM2u+F+I     5053.855     43  10193.711    10194.895    10455.294
+159  TPM2u+F+G4    5054.498     43  10194.996    10196.180    10456.579
+160  TPM2u+F+I+G4  5053.870     44  10195.740    10196.979    10463.406
+170  TPM2+F        5060.322     42  10204.645    10205.774    10460.144
+171  TPM2+F+I      5053.855     43  10193.711    10194.895    10455.294
+172  TPM2+F+G4     5054.498     43  10194.996    10196.180    10456.579
+173  TPM2+F+I+G4   5053.870     44  10195.740    10196.979    10463.406
+183  K3Pu+F        5060.383     42  10204.765    10205.895    10460.265
+184  K3Pu+F+I      5053.905     43  10193.809    10194.993    10455.392
+185  K3Pu+F+G4     5054.555     43  10195.109    10196.293    10456.692
+186  K3Pu+F+I+G4   5053.920     44  10195.841    10197.080    10463.507
+196  K3P           5075.659     39  10229.318    10230.293    10466.568
+197  K3P+I         5069.431     40  10218.861    10219.887    10462.195
+198  K3P+G4        5069.967     40  10219.934    10220.960    10463.267
+199  K3P+I+G4      5069.450     41  10220.900    10221.977    10470.317
+209  TN+F          5060.220     42  10204.440    10205.569    10459.939
+210  TN+F+I        5053.776     43  10193.552    10194.736    10455.135
+211  TN+F+G4       5054.409     43  10194.817    10196.001    10456.400
+212  TN+F+I+G4     5053.790     44  10195.580    10196.819    10463.246
+222  TNe           5075.640     39  10229.280    10230.255    10466.530
+223  TNe+I         5069.417     40  10218.835    10219.860    10462.168
+224  TNe+G4        5069.950     40  10219.901    10220.926    10463.234
+225  TNe+I+G4      5069.436     41  10220.873    10221.949    10470.289
+235  HKY+F         5060.386     41  10202.773    10203.850    10452.189
+236  HKY+F+I       5053.920     42  10191.839    10192.969    10447.339
+237  HKY+F+G4      5054.564     42  10193.127    10194.257    10448.627
+238  HKY+F+I+G4    5053.937     43  10193.874    10195.058    10455.457
+248  K2P           5075.657     38  10227.315    10228.241    10458.481
+249  K2P+I         5069.429     39  10216.858    10217.833    10454.108
+250  K2P+G4        5069.967     39  10217.934    10218.909    10455.184
+251  K2P+I+G4      5069.450     40  10218.899    10219.925    10462.232
+261  F81+F         5071.065     40  10222.129    10223.155    10465.463
+262  F81+F+I       5064.959     41  10211.918    10212.995    10461.334
+263  F81+F+G4      5065.446     41  10212.891    10213.968    10462.308
+264  F81+F+I+G4    5064.980     42  10213.960    10215.090    10469.460
+274  JC            5086.170     37  10246.341    10247.219    10471.424
+275  JC+I          5080.189     38  10236.378    10237.304    10467.545
+276  JC+G4         5080.625     38  10237.251    10238.177    10468.417
+277  JC+I+G4       5080.214     39  10238.428    10239.403    10475.677
+Akaike Information Criterion:           HKY+F+I
+Corrected Akaike Information Criterion: HKY+F+I
+Bayesian Information Criterion:         HKY+F+I
+Best-fit model: HKY+F+I chosen according to BIC
+
+All model information printed to 11834at7898.fltrd_aligned.fas.model.gz
+CPU time for ModelFinder: 0.319 seconds (0h:0m:0s)
+Wall-clock time for ModelFinder: 0.329 seconds (0h:0m:0s)
+Generating 1000 samples for ultrafast bootstrap (seed: 538866)...
+
+NOTE: 0 MB RAM (0 GB) is required!
+Estimate model parameters (epsilon = 0.100)
+1. Initial log-likelihood: -5053.920
+Optimal log-likelihood: -5053.920
+Rate parameters:  A-C: 1.00000  A-G: 2.65385  A-T: 1.00000  C-G: 1.00000  C-T: 2.65385  G-T: 1.00000
+Base frequencies:  A: 0.237  C: 0.267  G: 0.286  T: 0.210
+Proportion of invariable sites: 0.843
+Parameters optimization took 1 rounds (0.001 sec)
+Computing ML distances based on estimated model parameters...
+Computing ML distances took 0.001115 sec (of wall-clock time) 0.001077 sec(of CPU time)
+Computing RapidNJ tree took 0.000075 sec (of wall-clock time) 0.000072 sec (of CPU time)
+Log-likelihood of RapidNJ tree: -5079.540
+--------------------------------------------------------------------
+|             INITIALIZING CANDIDATE TREE SET                      |
+--------------------------------------------------------------------
+Generating 98 parsimony trees... 0.073 second
+Computing log-likelihood of 98 initial trees ... 0.055 seconds
+Current best score: -5053.920
+
+Do NNI search on 20 best initial trees
+Estimate model parameters (epsilon = 0.100)
+BETTER TREE FOUND at iteration 1: -5053.917
+Iteration 10 / LogL: -5053.918 / Time: 0h:0m:0s
+BETTER TREE FOUND at iteration 14: -5053.917
+Iteration 20 / LogL: -5053.918 / Time: 0h:0m:0s
+Finish initializing candidate tree set (11)
+Current best tree score: -5053.917 / CPU time: 0.256
+Number of iterations: 20
+--------------------------------------------------------------------
+|               OPTIMIZING CANDIDATE TREE SET                      |
+--------------------------------------------------------------------
+Estimate model parameters (epsilon = 0.100)
+BETTER TREE FOUND at iteration 22: -5053.365
+Iteration 30 / LogL: -5068.159 / Time: 0h:0m:0s (0h:0m:1s left)
+UPDATE BEST LOG-LIKELIHOOD: -5053.365
+Iteration 40 / LogL: -5053.373 / Time: 0h:0m:0s (0h:0m:0s left)
+UPDATE BEST LOG-LIKELIHOOD: -5053.362
+Iteration 50 / LogL: -5053.369 / Time: 0h:0m:0s (0h:0m:0s left)
+Log-likelihood cutoff on original alignment: -5077.904
+Iteration 60 / LogL: -5062.166 / Time: 0h:0m:0s (0h:0m:0s left)
+UPDATE BEST LOG-LIKELIHOOD: -5053.362
+UPDATE BEST LOG-LIKELIHOOD: -5053.362
+Iteration 70 / LogL: -5053.366 / Time: 0h:0m:0s (0h:0m:0s left)
+UPDATE BEST LOG-LIKELIHOOD: -5053.361
+Iteration 80 / LogL: -5053.373 / Time: 0h:0m:0s (0h:0m:0s left)
+UPDATE BEST LOG-LIKELIHOOD: -5053.360
+Iteration 90 / LogL: -5053.369 / Time: 0h:0m:0s (0h:0m:0s left)
+Iteration 100 / LogL: -5053.368 / Time: 0h:0m:1s (0h:0m:0s left)
+Log-likelihood cutoff on original alignment: -5078.355
+NOTE: Bootstrap correlation coefficient of split occurrence frequencies: 0.994
+Iteration 110 / LogL: -5053.377 / Time: 0h:0m:1s (0h:0m:0s left)
+Iteration 120 / LogL: -5053.361 / Time: 0h:0m:1s (0h:0m:0s left)
+TREE SEARCH COMPLETED AFTER 123 ITERATIONS / Time: 0h:0m:1s
+
+--------------------------------------------------------------------
+|                    FINALIZING TREE SEARCH                        |
+--------------------------------------------------------------------
+Performs final model parameters optimization
+Estimate model parameters (epsilon = 0.010)
+1. Initial log-likelihood: -5053.360
+Optimal log-likelihood: -5053.359
+Rate parameters:  A-C: 1.00000  A-G: 2.81420  A-T: 1.00000  C-G: 1.00000  C-T: 2.81420  G-T: 1.00000
+Base frequencies:  A: 0.237  C: 0.267  G: 0.286  T: 0.210
+Proportion of invariable sites: 0.857
+Parameters optimization took 1 rounds (0.001 sec)
+BEST SCORE FOUND : -5053.359
+Creating bootstrap support values...
+Split supports printed to NEXUS file 11834at7898.fltrd_aligned.fas.splits.nex
+Total tree length: 0.037
+
+Total number of iterations: 123
+CPU time used for tree search: 1.115 sec (0h:0m:1s)
+Wall-clock time used for tree search: 1.212 sec (0h:0m:1s)
+Total CPU time used: 1.165 sec (0h:0m:1s)
+Total wall-clock time used: 1.273 sec (0h:0m:1s)
+
+Computing bootstrap consensus tree...
+Reading input file 11834at7898.fltrd_aligned.fas.splits.nex...
+20 taxa and 233 splits.
+Consensus tree written to 11834at7898.fltrd_aligned.fas.contree
+Reading input trees file 11834at7898.fltrd_aligned.fas.contree
+Log-likelihood of consensus tree: -5053.409
+
+Analysis results written to: 
+  IQ-TREE report:                11834at7898.fltrd_aligned.fas.iqtree
+  Maximum-likelihood tree:       11834at7898.fltrd_aligned.fas.treefile
+  Likelihood distances:          11834at7898.fltrd_aligned.fas.mldist
+
+Ultrafast bootstrap approximation results written to:
+  Split support values:          11834at7898.fltrd_aligned.fas.splits.nex
+  Consensus tree:                11834at7898.fltrd_aligned.fas.contree
+  Screen log file:               11834at7898.fltrd_aligned.fas.log
+
+Date and Time: Tue Dec  2 14:50:15 2025
