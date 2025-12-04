@@ -10,4 +10,6 @@ conda env create --file=environment.yml
 
 To run this software, put the location of your data directory and the name of your outgroup in the Phylogenetics_Pipeline.nf file.
 
-Then, type nextflow run Phylogenetics_Pipeline.nf
+Then, type 
+
+nextflow run Phylogenetics_Pipeline.nf
